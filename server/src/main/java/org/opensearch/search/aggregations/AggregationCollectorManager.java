@@ -53,6 +53,8 @@ class AggregationCollectorManager implements CollectorManager<Collector, Reducea
         final List<Aggregator> aggregators = context.bucketCollectorProcessor().toAggregators(collectors);
         final List<InternalAggregation> internals = new ArrayList<>(aggregators.size());
         context.aggregations().resetBucketMultiConsumer();
+        // for parent join we need to reduce collectionStrategy here before buildAggregations, and then only call it once
+
         for (Aggregator aggregator : aggregators) {
             try {
                 // post collection is called in ContextIndexSearcher after search on leaves are completed

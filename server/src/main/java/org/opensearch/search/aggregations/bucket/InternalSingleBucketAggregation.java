@@ -120,7 +120,7 @@ public abstract class InternalSingleBucketAggregation extends InternalAggregatio
         List<InternalAggregations> subAggregationsList = new ArrayList<>(aggregations.size());
         for (InternalAggregation aggregation : aggregations) {
             assert aggregation.getName().equals(getName());
-            docCount += ((InternalSingleBucketAggregation) aggregation).docCount;
+            docCount += ((InternalSingleBucketAggregation) aggregation).docCount; // are we double summing?
             subAggregationsList.add(((InternalSingleBucketAggregation) aggregation).aggregations);
         }
         final InternalAggregations aggs = InternalAggregations.reduce(subAggregationsList, reduceContext);

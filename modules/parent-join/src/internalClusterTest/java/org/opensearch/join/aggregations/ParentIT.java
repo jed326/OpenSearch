@@ -32,8 +32,10 @@
 
 package org.opensearch.join.aggregations;
 
+import org.opensearch.action.admin.indices.segments.IndicesSegmentResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Requests;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.terms.Terms;
@@ -47,6 +49,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
 import static org.opensearch.join.aggregations.JoinAggregationBuilders.parent;
 import static org.opensearch.search.aggregations.AggregationBuilders.terms;
@@ -57,6 +60,16 @@ import static org.hamcrest.Matchers.equalTo;
 public class ParentIT extends AbstractParentChildTestCase {
 
     public void testSimpleParentAgg() throws Exception {
+//        client().admin().indices().forceMerge(Requests.forceMergeRequest("test").maxNumSegments(1)).actionGet();
+//        Thread.sleep(1000);
+        IndicesSegmentResponse isr = client().admin().indices().segments(Requests.indicesSegmentsRequest("test")).actionGet();
+        System.out.println("[test index segments]: " + isr.getIndices().get("test").getShards().get(0).getShards()[0].getSegments().size());
+
+        final SearchResponse searchResponsePre = client().prepareSearch("test")
+            .setSize(10000)
+            .setQuery(matchAllQuery())
+            .get();
+
         final SearchRequestBuilder searchRequest = client().prepareSearch("test")
             .setSize(10000)
             .setQuery(matchQuery("randomized", true))

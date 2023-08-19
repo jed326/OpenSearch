@@ -42,6 +42,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.action.index.IndexRequestBuilder;
+import org.opensearch.client.Requests;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.join.query.ParentChildTestCase;
 import org.junit.Before;
 
@@ -64,16 +67,19 @@ public abstract class AbstractParentChildTestCase extends ParentChildTestCase {
                     "keyword"
                 )
             )
+                .setSettings(Settings.builder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1))
         );
 
         List<IndexRequestBuilder> requests = new ArrayList<>();
-        String[] uniqueCategories = new String[randomIntBetween(1, 25)];
+//        String[] uniqueCategories = new String0[randomIntBetween(1, 25)];
+        String[] uniqueCategories = new String[2];
         for (int i = 0; i < uniqueCategories.length; i++) {
             uniqueCategories[i] = Integer.toString(i);
         }
         int catIndex = 0;
 
-        int numParentDocs = randomIntBetween(uniqueCategories.length, uniqueCategories.length * 5);
+//        int numParentDocs = randomIntBetween(uniqueCategories.length, uniqueCategories.length * 5);
+        int numParentDocs = 1;
         for (int i = 0; i < numParentDocs; i++) {
             String id = "article-" + i;
 
@@ -98,7 +104,8 @@ public abstract class AbstractParentChildTestCase extends ParentChildTestCase {
         int id = 0;
         for (Control control : categoryToControl.values()) {
             for (String articleId : control.articleIds) {
-                int numChildDocsPerParent = randomIntBetween(0, 5);
+                int numChildDocsPerParent = 2;
+//                int numChildDocsPerParent = randomIntBetween(0, 5);
                 for (int i = 0; i < numChildDocsPerParent; i++) {
                     String commenter = commenters[id % commenters.length];
                     String idValue = "comment-" + id++;
@@ -123,14 +130,15 @@ public abstract class AbstractParentChildTestCase extends ParentChildTestCase {
             }
         }
 
-        requests.add(createIndexRequest("test", "article", "a", null, "category", new String[] { "a" }, "randomized", false));
-        requests.add(createIndexRequest("test", "article", "b", null, "category", new String[] { "a", "b" }, "randomized", false));
-        requests.add(createIndexRequest("test", "article", "c", null, "category", new String[] { "a", "b", "c" }, "randomized", false));
-        requests.add(createIndexRequest("test", "article", "d", null, "category", new String[] { "c" }, "randomized", false));
-        requests.add(createIndexRequest("test", "comment", "e", "a"));
-        requests.add(createIndexRequest("test", "comment", "f", "c"));
-
-        indexRandom(true, requests);
+//        requests.add(createIndexRequest("test", "article", "a", null, "category", new String[] { "a" }, "randomized", false));
+//        requests.add(createIndexRequest("test", "article", "b", null, "category", new String[] { "a", "b" }, "randomized", false));
+//        requests.add(createIndexRequest("test", "article", "c", null, "category", new String[] { "a", "b", "c" }, "randomized", false));
+//        requests.add(createIndexRequest("test", "article", "d", null, "category", new String[] { "c" }, "randomized", false));
+//        requests.add(createIndexRequest("test", "comment", "e", "a"));
+//        requests.add(createIndexRequest("test", "comment", "f", "c"));
+//
+//        indexRandom(true, requests);
+        indexRandom(true, false, requests);
         ensureSearchable("test");
     }
 

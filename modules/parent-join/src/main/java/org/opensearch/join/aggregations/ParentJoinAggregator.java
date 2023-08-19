@@ -57,6 +57,8 @@ import org.opensearch.search.aggregations.support.ValuesSource;
 import org.opensearch.search.internal.SearchContext;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -108,20 +110,28 @@ public abstract class ParentJoinAggregator extends BucketsAggregator implements 
             : new SparseCollectionStrategy(context.bigArrays(), cardinality);
     }
 
+    List<LeafReaderContext> leafReaderContexts = new ArrayList<>();
+
     @Override
     public final LeafBucketCollector getLeafCollector(LeafReaderContext ctx, final LeafBucketCollector sub) throws IOException {
         if (valuesSource == null) {
             return LeafBucketCollector.NO_OP_COLLECTOR;
         }
-        final SortedSetDocValues globalOrdinals = valuesSource.globalOrdinalsValues(ctx);
+        // globalOrdinal is the parent doc
+        final SortedSetDocValues globalOrdinals = valuesSource.globalOrdinalsValues(ctx); // Check if this is shared across segments
+        // Need to see what parentDocs collects with 1 segment
+        // this is a bit of a misnomer because if this were a child aggregation then parentDocs would be accurate
         final Bits parentDocs = Lucene.asSequentialAccessBits(ctx.reader().maxDoc(), inFilter.scorerSupplier(ctx));
+        leafReaderContexts.add(ctx);
         return new LeafBucketCollector() {
             @Override
             public void collect(int docId, long owningBucketOrd) throws IOException {
+                // If docId is in parent docs then add it to collectionStrategy. In our case the children docs get added to collectionStrategy
                 if (parentDocs.get(docId) && globalOrdinals.advanceExact(docId)) {
+                    // What is the field of the global ordinal?
                     int globalOrdinal = (int) globalOrdinals.nextOrd();
                     assert globalOrdinal != -1 && globalOrdinals.nextOrd() == SortedSetDocValues.NO_MORE_ORDS;
-                    collectionStrategy.add(owningBucketOrd, globalOrdinal);
+                    collectionStrategy.add(owningBucketOrd, globalOrdinal); // Need to know what is stored here
                 }
             }
         };
@@ -135,7 +145,11 @@ public abstract class ParentJoinAggregator extends BucketsAggregator implements 
     @Override
     protected void beforeBuildingBuckets(long[] ordsToCollect) throws IOException {
         IndexReader indexReader = context().searcher().getIndexReader();
-        for (LeafReaderContext ctx : indexReader.leaves()) {
+        // indexReader.leaves() is all the segments, need to understand what happens to the slice segments in non cs case
+        // See where the parent level bucket is created
+//        context.searcher().getLeafContexts();
+        for (LeafReaderContext ctx : leafReaderContexts) {
+            // It seems like this is actually the parent docs?
             Scorer childDocsScorer = outFilter.scorer(ctx);
             if (childDocsScorer == null) {
                 continue;
@@ -145,7 +159,7 @@ public abstract class ParentJoinAggregator extends BucketsAggregator implements 
             final LeafBucketCollector sub = collectableSubAggregators.getLeafCollector(ctx);
 
             final SortedSetDocValues globalOrdinals = valuesSource.globalOrdinalsValues(ctx);
-            // Set the scorer, since we now replay only the child docIds
+            // Set the scorer, since we now replay only the child docIds1
             sub.setScorer(new Scorable() {
                 @Override
                 public float score() {
@@ -176,7 +190,8 @@ public abstract class ParentJoinAggregator extends BucketsAggregator implements 
                  * longs.
                  */
                 for (long owningBucketOrd : ordsToCollect) {
-                    if (collectionStrategy.exists(owningBucketOrd, globalOrdinal)) {
+                    if (collectionStrategy.exists(owningBucketOrd, globalOrdinal)) { // I think the problem is here, we're checking the globalOrdinal on every leaf
+                        // collected<docId, globalOrdinal>
                         collectBucket(sub, docId, owningBucketOrd);
                     }
                 }
@@ -216,13 +231,13 @@ public abstract class ParentJoinAggregator extends BucketsAggregator implements 
         }
 
         @Override
-        public void add(long owningBucketOrd, int globalOrdinal) {
+        synchronized public void add(long owningBucketOrd, int globalOrdinal) {
             assert owningBucketOrd == 0;
             ordsBits.set(globalOrdinal);
         }
 
         @Override
-        public boolean exists(long owningBucketOrd, int globalOrdinal) {
+        synchronized public boolean exists(long owningBucketOrd, int globalOrdinal) {
             assert owningBucketOrd == 0;
             return ordsBits.get(globalOrdinal);
         }

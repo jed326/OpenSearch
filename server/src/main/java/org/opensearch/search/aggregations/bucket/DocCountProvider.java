@@ -56,6 +56,8 @@ public class DocCountProvider {
         }
     }
 
+    // The doc count comes straight from Lucene?
+    // _doc_count field is for pre-aggregated data so we will return 1 here always
     public void setLeafReaderContext(LeafReaderContext ctx) throws IOException {
         docCountValues = DocValues.getNumeric(ctx.reader(), DocCountFieldMapper.NAME);
     }

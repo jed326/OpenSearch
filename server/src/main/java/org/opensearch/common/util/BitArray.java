@@ -59,7 +59,7 @@ public final class BitArray implements Releasable {
     /**
      * Set the {@code index}th bit.
      */
-    public void set(long index) {
+    public void set(long index) { // This is not thread safe
         long wordNum = wordNum(index);
         bits = bigArrays.grow(bits, wordNum + 1);
         bits.set(wordNum, bits.get(wordNum) | bitmask(index));

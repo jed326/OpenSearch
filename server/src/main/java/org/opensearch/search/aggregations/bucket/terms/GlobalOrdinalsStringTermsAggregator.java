@@ -414,7 +414,7 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
      * that it hits and then calling {@link CollectionStrategy#forEach}
      * once to iterate on the results.
      */
-    abstract class CollectionStrategy implements Releasable {
+    public abstract class CollectionStrategy implements Releasable {
         /**
          * Short description of the collection mechanism added to the profile
          * output to help with debugging.
@@ -540,7 +540,8 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
 
         @Override
         void collectGlobalOrd(long owningBucketOrd, int doc, long globalOrd, LeafBucketCollector sub) throws IOException {
-            long bucketOrd = bucketOrds.add(owningBucketOrd, globalOrd);
+            // Looks like this somehow figures out which bucket id to collect into
+            long bucketOrd = bucketOrds.add(owningBucketOrd, globalOrd); // Check if subaggregator creates new bucket on each slice
             if (bucketOrd < 0) {
                 bucketOrd = -1 - bucketOrd;
                 collectExistingBucket(sub, doc, bucketOrd);

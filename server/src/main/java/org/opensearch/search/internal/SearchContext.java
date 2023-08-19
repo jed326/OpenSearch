@@ -56,9 +56,11 @@ import org.opensearch.search.SearchExtBuilder;
 import org.opensearch.search.SearchShardTarget;
 import org.opensearch.search.aggregations.Aggregator;
 import org.opensearch.search.aggregations.BucketCollectorProcessor;
+import org.opensearch.search.aggregations.CardinalityUpperBound;
 import org.opensearch.search.aggregations.InternalAggregation;
 import org.opensearch.search.aggregations.SearchContextAggregations;
 import org.opensearch.search.aggregations.bucket.LocalBucketCountThresholds;
+import org.opensearch.search.aggregations.bucket.terms.GlobalOrdinalsStringTermsAggregator;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregator;
 import org.opensearch.search.collapse.CollapseContext;
 import org.opensearch.search.dfs.DfsSearchResult;
@@ -94,6 +96,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @opensearch.internal
  */
 public abstract class SearchContext implements Releasable {
+
+    public static GlobalOrdinalsStringTermsAggregator.CollectionStrategy collectionStrategy;
+
+    public GlobalOrdinalsStringTermsAggregator.CollectionStrategy initialize(GlobalOrdinalsStringTermsAggregator.CollectionStrategy collectionStrategy) {
+        if (SearchContext.collectionStrategy == null) {
+            SearchContext.collectionStrategy = collectionStrategy;
+        }
+        return SearchContext.collectionStrategy;
+    }
 
     public static final int DEFAULT_TERMINATE_AFTER = 0;
     public static final int TRACK_TOTAL_HITS_ACCURATE = Integer.MAX_VALUE;

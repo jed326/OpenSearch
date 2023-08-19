@@ -447,6 +447,7 @@ public class AggregatorFactories {
             AggregatorFactory[] aggFactories = new AggregatorFactory[aggregationBuilders.size()];
             int i = 0;
             for (AggregationBuilder agg : aggregationBuilders) {
+                // check setting here
                 aggFactories[i] = agg.build(queryShardContext, parent);
                 ++i;
             }
