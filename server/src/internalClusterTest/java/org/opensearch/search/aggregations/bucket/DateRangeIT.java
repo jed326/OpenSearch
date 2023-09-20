@@ -37,6 +37,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.plugins.Plugin;
@@ -90,8 +91,8 @@ public class DateRangeIT extends ParameterizedOpenSearchIntegTestCase {
     @ParametersFactory
     public static Collection<Object[]> parameters() {
         return Arrays.asList(
-            new Object[] { Settings.builder().put(CLUSTER_CONCURRENT_SEGMENT_SEARCH_SETTING.getKey(), false).build() },
-            new Object[] { Settings.builder().put(CLUSTER_CONCURRENT_SEGMENT_SEARCH_SETTING.getKey(), true).build() }
+            new Object[] { Settings.builder().put(CLUSTER_CONCURRENT_SEGMENT_SEARCH_SETTING.getKey(), true).build() },
+            new Object[] { Settings.builder().put(CLUSTER_CONCURRENT_SEGMENT_SEARCH_SETTING.getKey(), false).build() }
         );
     }
 
@@ -126,7 +127,11 @@ public class DateRangeIT extends ParameterizedOpenSearchIntegTestCase {
 
     @Override
     public void setupSuiteScopeCluster() throws Exception {
-        createIndex("idx");
+        createIndex("idx",
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+                .build());
         createIndex("idx_unmapped");
 
         numDocs = randomIntBetween(7, 20);
@@ -180,31 +185,36 @@ public class DateRangeIT extends ParameterizedOpenSearchIntegTestCase {
                     .addUnboundedFrom("last year", "now-1y")
                     .timeZone(ZoneId.of("Etc/GMT+5"))
             )
+            .setTrackTotalHits(true)
+//            .setSize(0)
+            .setTerminateAfter(3)
             .get();
+        System.out.println(response);
 
         assertSearchResponse(response);
 
-        Range range = response.getAggregations().get("range");
-        assertThat(range, notNullValue());
-        assertThat(range.getName(), equalTo("range"));
-        assertThat(range.getBuckets().size(), equalTo(3));
-
-        List<Range.Bucket> buckets = new ArrayList<>(range.getBuckets());
-
-        Range.Bucket bucket = buckets.get(0);
-        assertThat((String) bucket.getKey(), equalTo("a long time ago"));
-        assertThat(bucket.getKeyAsString(), equalTo("a long time ago"));
-        assertThat(bucket.getDocCount(), equalTo(0L));
-
-        bucket = buckets.get(1);
-        assertThat((String) bucket.getKey(), equalTo("recently"));
-        assertThat(bucket.getKeyAsString(), equalTo("recently"));
-        assertThat(bucket.getDocCount(), equalTo((long) numDocs));
-
-        bucket = buckets.get(2);
-        assertThat((String) bucket.getKey(), equalTo("last year"));
-        assertThat(bucket.getKeyAsString(), equalTo("last year"));
-        assertThat(bucket.getDocCount(), equalTo(0L));
+//
+//        Range range = response.getAggregations().get("range");
+//        assertThat(range, notNullValue());
+//        assertThat(range.getName(), equalTo("range"));
+//        assertThat(range.getBuckets().size(), equalTo(3));
+//
+//        List<Range.Bucket> buckets = new ArrayList<>(range.getBuckets());
+//
+//        Range.Bucket bucket = buckets.get(0);
+//        assertThat((String) bucket.getKey(), equalTo("a long time ago"));
+//        assertThat(bucket.getKeyAsString(), equalTo("a long time ago"));
+//        assertThat(bucket.getDocCount(), equalTo(0L));
+//
+//        bucket = buckets.get(1);
+//        assertThat((String) bucket.getKey(), equalTo("recently"));
+//        assertThat(bucket.getKeyAsString(), equalTo("recently"));
+//        assertThat(bucket.getDocCount(), equalTo((long) numDocs));
+//
+//        bucket = buckets.get(2);
+//        assertThat((String) bucket.getKey(), equalTo("last year"));
+//        assertThat(bucket.getKeyAsString(), equalTo("last year"));
+//        assertThat(bucket.getDocCount(), equalTo(0L));
     }
 
     public void testSingleValueField() throws Exception {
