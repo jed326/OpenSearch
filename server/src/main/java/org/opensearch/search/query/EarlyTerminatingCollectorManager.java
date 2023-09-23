@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Manager for the EarlyTerminatingCollector
@@ -29,16 +30,23 @@ public class EarlyTerminatingCollectorManager<C extends Collector>
     private final CollectorManager<C, ReduceableSearchResult> manager;
     private final int maxCountHits;
     private boolean forceTermination;
+    private final AtomicLong numCollected;
 
     EarlyTerminatingCollectorManager(CollectorManager<C, ReduceableSearchResult> manager, int maxCountHits, boolean forceTermination) {
         this.manager = manager;
         this.maxCountHits = maxCountHits;
         this.forceTermination = forceTermination;
+        this.numCollected = new AtomicLong();
     }
 
     @Override
     public EarlyTerminatingCollector newCollector() throws IOException {
-        return new EarlyTerminatingCollector(manager.newCollector(), maxCountHits, false /* forced termination is not supported */);
+        return new EarlyTerminatingCollector(
+            manager.newCollector(),
+            maxCountHits,
+            forceTermination /* forced termination is not supported */,
+            numCollected
+        );
     }
 
     @SuppressWarnings("unchecked")

@@ -277,6 +277,7 @@ public class QueryPhase {
             }
 
             try {
+                // EarlyTerminationException gets swallowed here?
                 boolean shouldRescore = queryPhaseSearcher.searchWith(
                     searchContext,
                     searcher,
@@ -350,9 +351,8 @@ public class QueryPhase {
             queryCollector = QueryCollectorContext.createQueryCollector(collectors);
         }
         QuerySearchResult queryResult = searchContext.queryResult();
-        try {
-            searcher.search(query, queryCollector);
-        } catch (EarlyTerminatingCollector.EarlyTerminationException e) {
+        searcher.search(query, queryCollector);
+        if (searchContext.isTerminatedEarly()) {
             queryResult.terminatedEarly(true);
         }
         if (searchContext.isSearchTimedOut()) {

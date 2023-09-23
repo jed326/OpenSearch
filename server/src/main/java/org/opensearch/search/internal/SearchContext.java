@@ -119,6 +119,7 @@ public abstract class SearchContext implements Releasable {
     private InnerHitsContext innerHitsContext;
 
     private volatile boolean searchTimedOut;
+    private volatile boolean terminatedEarly;
 
     protected SearchContext() {}
 
@@ -134,6 +135,14 @@ public abstract class SearchContext implements Releasable {
 
     public void setSearchTimedOut(boolean searchTimedOut) {
         this.searchTimedOut = searchTimedOut;
+    }
+
+    public boolean isTerminatedEarly() {
+        return this.terminatedEarly;
+    }
+
+    public void setTerminatedEarly(boolean terminatedEarly) {
+        this.terminatedEarly = terminatedEarly;
     }
 
     @Override

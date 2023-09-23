@@ -308,6 +308,40 @@ public class ParameterizedSimpleSearchIT extends ParameterizedOpenSearchIntegTes
         assertEquals(0, searchResponse.getFailedShards());
     }
 
+    public void testSimpleTerminateAfterCount() throws Exception {
+        prepareCreate("test").setSettings(Settings.builder().put(SETTING_NUMBER_OF_SHARDS, 1).put(SETTING_NUMBER_OF_REPLICAS, 0)).get();
+        ensureGreen();
+        int max = randomIntBetween(3, 29);
+        List<IndexRequestBuilder> docbuilders = new ArrayList<>(max);
+
+        for (int i = 1; i <= max; i++) {
+            String id = String.valueOf(i);
+            docbuilders.add(client().prepareIndex("test").setId(id).setSource("field", i));
+        }
+
+        indexRandom(true, docbuilders);
+        ensureGreen();
+        refresh();
+
+        SearchResponse searchResponse;
+        for (int i = 1; i < max; i++) {
+            searchResponse = client().prepareSearch("test")
+                .setQuery(QueryBuilders.rangeQuery("field").gte(1).lte(max))
+                .setTerminateAfter(i)
+                .get();
+            assertHitCount(searchResponse, i);
+            assertTrue(searchResponse.isTerminatedEarly());
+        }
+
+        searchResponse = client().prepareSearch("test")
+            .setQuery(QueryBuilders.rangeQuery("field").gte(1).lte(max))
+            .setTerminateAfter(2 * max)
+            .get();
+
+        assertHitCount(searchResponse, max);
+        assertFalse(searchResponse.isTerminatedEarly());
+    }
+
     public void testSimpleIndexSortEarlyTerminate() throws Exception {
         prepareCreate("test").setSettings(
             Settings.builder().put(SETTING_NUMBER_OF_SHARDS, 1).put(SETTING_NUMBER_OF_REPLICAS, 0).put("index.sort.field", "rank")
