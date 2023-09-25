@@ -59,7 +59,7 @@ public class EarlyTerminatingCollector extends FilterCollector {
     }
 
     private final int maxCountHits;
-    private final AtomicLong numCollected;
+    private long numCollected;
     private final boolean forceTermination;
     private boolean earlyTerminated;
 
@@ -74,19 +74,11 @@ public class EarlyTerminatingCollector extends FilterCollector {
         super(delegate);
         this.maxCountHits = maxCountHits;
         this.forceTermination = forceTermination;
-        this.numCollected = new AtomicLong();
-    }
-
-    EarlyTerminatingCollector(final Collector delegate, int maxCountHits, boolean forceTermination, AtomicLong numCollected) {
-        super(delegate);
-        this.maxCountHits = maxCountHits;
-        this.forceTermination = forceTermination;
-        this.numCollected = numCollected;
     }
 
     @Override
     public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
-        if (numCollected.get() >= maxCountHits) {
+        if (numCollected >= maxCountHits) {
             earlyTerminated = true;
             if (forceTermination) {
                 throw new EarlyTerminationException("early termination [CountBased]");
@@ -97,7 +89,7 @@ public class EarlyTerminatingCollector extends FilterCollector {
         return new FilterLeafCollector(super.getLeafCollector(context)) {
             @Override
             public void collect(int doc) throws IOException {
-                if (numCollected.incrementAndGet() > maxCountHits) {
+                if (++numCollected > maxCountHits) {
                     earlyTerminated = true;
                     if (forceTermination) {
                         throw new EarlyTerminationException("early termination [CountBased]");

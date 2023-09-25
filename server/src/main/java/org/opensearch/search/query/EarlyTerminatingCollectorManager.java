@@ -30,13 +30,11 @@ public class EarlyTerminatingCollectorManager<C extends Collector>
     private final CollectorManager<C, ReduceableSearchResult> manager;
     private final int maxCountHits;
     private boolean forceTermination;
-    private final AtomicLong numCollected;
 
     EarlyTerminatingCollectorManager(CollectorManager<C, ReduceableSearchResult> manager, int maxCountHits, boolean forceTermination) {
         this.manager = manager;
         this.maxCountHits = maxCountHits;
         this.forceTermination = forceTermination;
-        this.numCollected = new AtomicLong();
     }
 
     @Override
@@ -44,8 +42,7 @@ public class EarlyTerminatingCollectorManager<C extends Collector>
         return new EarlyTerminatingCollector(
             manager.newCollector(),
             maxCountHits,
-            forceTermination /* forced termination is not supported */,
-            numCollected
+            forceTermination /* forced termination is not supported */
         );
     }
 
