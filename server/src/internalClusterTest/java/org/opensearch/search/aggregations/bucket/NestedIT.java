@@ -781,6 +781,7 @@ public class NestedIT extends ParameterizedOpenSearchIntegTestCase {
                     .endObject()
             )
             .get();
+        indexRandomForConcurrentSearch("classes");
         refresh();
 
         SearchResponse response = client().prepareSearch("classes")

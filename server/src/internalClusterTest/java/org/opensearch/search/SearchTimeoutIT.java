@@ -92,6 +92,7 @@ public class SearchTimeoutIT extends ParameterizedOpenSearchIntegTestCase {
         for (int i = 0; i < numDocs; i++) {
             client().prepareIndex("test").setId(Integer.toString(i)).setSource("field", "value").get();
         }
+        indexRandomForConcurrentSearch("test");
         refresh("test");
 
         SearchResponse searchResponse = client().prepareSearch("test")
@@ -104,11 +105,11 @@ public class SearchTimeoutIT extends ParameterizedOpenSearchIntegTestCase {
     }
 
     public void testSimpleDoesNotTimeout() throws Exception {
-        final int numDocs = 10;
+        final int numDocs = 9;
         for (int i = 0; i < numDocs; i++) {
             client().prepareIndex("test").setId(Integer.toString(i)).setSource("field", "value").get();
+            refresh("test");
         }
-        refresh("test");
 
         SearchResponse searchResponse = client().prepareSearch("test")
             .setTimeout(new TimeValue(10000, TimeUnit.SECONDS))
@@ -122,6 +123,7 @@ public class SearchTimeoutIT extends ParameterizedOpenSearchIntegTestCase {
 
     public void testPartialResultsIntolerantTimeout() throws Exception {
         client().prepareIndex("test").setId("1").setSource("field", "value").setRefreshPolicy(IMMEDIATE).get();
+        indexRandomForConcurrentSearch("test");
 
         OpenSearchException ex = expectThrows(
             OpenSearchException.class,
