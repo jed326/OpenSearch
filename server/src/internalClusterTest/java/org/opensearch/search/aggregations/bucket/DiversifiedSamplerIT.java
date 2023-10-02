@@ -139,6 +139,7 @@ public class DiversifiedSamplerIT extends ParameterizedOpenSearchIntegTestCase {
                 .get();
         }
         client().admin().indices().refresh(new RefreshRequest("test")).get();
+        indexRandomForMultipleSlices("test", "idx_unmapped", "idx_unmapped_author");
     }
 
     public void testIssue10719() throws Exception {

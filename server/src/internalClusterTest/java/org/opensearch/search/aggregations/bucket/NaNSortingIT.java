@@ -173,6 +173,7 @@ public class NaNSortingIT extends ParameterizedOpenSearchIntegTestCase {
         }
         refresh();
         ensureSearchable();
+        indexRandomForMultipleSlices("idx", "idx");
     }
 
     private void assertCorrectlySorted(Terms terms, boolean asc, SubAggregation agg) {
