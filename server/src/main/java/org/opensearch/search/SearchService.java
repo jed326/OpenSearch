@@ -202,6 +202,17 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     );
 
     /**
+     * Threshold for terminate_after search parameter below which non-concurrent search will always be used.
+     */
+    public static final Setting<Integer> TERMINATE_AFTER_CONCURRENT_SEARCH_THRESHOLD = Setting.intSetting(
+        "search.terminate_after_concurrent_search_threshold",
+        100000,
+        0,
+        Property.NodeScope,
+        Property.Dynamic
+    );
+
+    /**
      * Enables low-level, frequent search cancellation checks. Enabling low-level checks will make long running searches to react
      * to the cancellation request faster. It will produce more cancellation checks but benchmarking has shown these did not
      * noticeably slow down searches.

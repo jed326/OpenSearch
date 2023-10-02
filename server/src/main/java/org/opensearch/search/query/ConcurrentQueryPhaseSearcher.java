@@ -94,6 +94,9 @@ public class ConcurrentQueryPhaseSearcher extends DefaultQueryPhaseSearcher {
         if (searchContext.terminateAfter() != SearchContext.DEFAULT_TERMINATE_AFTER && queryResult.terminatedEarly() == null) {
             queryResult.terminatedEarly(false);
         }
+        if (searchContext.isTerminatedEarly()) {
+            queryResult.terminatedEarly(true);
+        }
 
         return topDocsFactory.shouldRescore();
     }

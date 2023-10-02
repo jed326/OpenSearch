@@ -74,6 +74,7 @@ import org.opensearch.search.profile.Timer;
 import org.opensearch.search.profile.query.ProfileWeight;
 import org.opensearch.search.profile.query.QueryProfiler;
 import org.opensearch.search.profile.query.QueryTimingType;
+import org.opensearch.search.query.EarlyTerminatingCollector;
 import org.opensearch.search.query.QueryPhase;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.search.sort.FieldSortBuilder;
@@ -292,7 +293,7 @@ public class ContextIndexSearcher extends IndexSearcher implements Releasable {
     private void searchLeaf(LeafReaderContext ctx, Weight weight, Collector collector) throws IOException {
 
         // Check if at all we need to call this leaf for collecting results.
-        if (canMatch(ctx) == false) {
+        if (canMatch(ctx) == false || searchContext.isTerminatedEarly()) {
             return;
         }
 
@@ -310,6 +311,9 @@ public class ContextIndexSearcher extends IndexSearcher implements Releasable {
             // there is no doc of interest in this reader context
             // continue with the following leaf
             return;
+        } catch (EarlyTerminatingCollector.EarlyTerminationException e) {
+            searchContext.setTerminatedEarly(true);
+            return;
         } catch (QueryPhase.TimeExceededException e) {
             searchContext.setSearchTimedOut(true);
             return;
@@ -325,6 +329,9 @@ public class ContextIndexSearcher extends IndexSearcher implements Releasable {
                 } catch (CollectionTerminatedException e) {
                     // collection was terminated prematurely
                     // continue with the following leaf
+                } catch (EarlyTerminatingCollector.EarlyTerminationException e) {
+                    searchContext.setTerminatedEarly(true);
+                    return;
                 } catch (QueryPhase.TimeExceededException e) {
                     searchContext.setSearchTimedOut(true);
                     return;
@@ -344,6 +351,9 @@ public class ContextIndexSearcher extends IndexSearcher implements Releasable {
                 } catch (CollectionTerminatedException e) {
                     // collection was terminated prematurely
                     // continue with the following leaf
+                } catch (EarlyTerminatingCollector.EarlyTerminationException e) {
+                    searchContext.setTerminatedEarly(true);
+                    return;
                 } catch (QueryPhase.TimeExceededException e) {
                     searchContext.setSearchTimedOut(true);
                     return;

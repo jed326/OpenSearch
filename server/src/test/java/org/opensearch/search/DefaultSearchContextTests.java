@@ -625,6 +625,7 @@ public class DefaultSearchContextTests extends OpenSearchTestCase {
             clusterSettings.applySettings(
                 Settings.builder().put(SearchService.CLUSTER_CONCURRENT_SEGMENT_SEARCH_SETTING.getKey(), true).build()
             );
+            clusterSettings.registerSetting(SearchService.TERMINATE_AFTER_CONCURRENT_SEARCH_THRESHOLD);
             when(clusterService.getClusterSettings()).thenReturn(clusterSettings);
             DefaultSearchContext context = new DefaultSearchContext(
                 readerContext,

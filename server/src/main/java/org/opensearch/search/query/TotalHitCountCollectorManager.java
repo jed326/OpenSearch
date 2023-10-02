@@ -54,9 +54,16 @@ public class TotalHitCountCollectorManager
 
     private final Sort sort;
     private Integer terminatedAfter;
+    private final int trackTotalHitsUpTo;
 
     public TotalHitCountCollectorManager(final Sort sort) {
         this.sort = sort;
+        trackTotalHitsUpTo = -1;
+    }
+
+    public TotalHitCountCollectorManager(final Sort sort, final int trackTotalHitsUpTo) {
+        this.sort = sort;
+        this.trackTotalHitsUpTo = trackTotalHitsUpTo;
     }
 
     @Override
@@ -72,11 +79,11 @@ public class TotalHitCountCollectorManager
     @Override
     public ReduceableSearchResult reduce(Collection<TotalHitCountCollector> collectors) throws IOException {
         return (QuerySearchResult result) -> {
-            final TotalHits.Relation relation = (terminatedAfter != null)
+            int totalHits = collectors.stream().mapToInt(TotalHitCountCollector::getTotalHits).sum();
+            final TotalHits.Relation relation = (trackTotalHitsUpTo < totalHits)
                 ? TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO
                 : TotalHits.Relation.EQUAL_TO;
 
-            int totalHits = collectors.stream().mapToInt(TotalHitCountCollector::getTotalHits).sum();
             if (terminatedAfter != null && totalHits > terminatedAfter) {
                 totalHits = terminatedAfter;
             }

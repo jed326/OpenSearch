@@ -470,7 +470,19 @@ public class QueryProfilePhaseTests extends IndexShardTestCase {
         }
         w.close();
         final IndexReader reader = DirectoryReader.open(dir);
-        TestSearchContext context = new TestSearchContext(null, indexShard, newContextSearcher(reader, executor));
+        TestSearchContext context = new TestSearchContext(null, indexShard);
+        context.setSearcher(
+            new ContextIndexSearcher(
+                reader,
+                IndexSearcher.getDefaultSimilarity(),
+                IndexSearcher.getDefaultQueryCache(),
+                IndexSearcher.getDefaultQueryCachingPolicy(),
+                true,
+                executor,
+                context
+            )
+        );
+        context.setConcurrentSegmentSearchEnabled(executor != null);
         context.setTask(new SearchShardTask(123L, "", "", "", null, Collections.emptyMap()));
         context.parsedQuery(new ParsedQuery(new MatchAllDocsQuery()));
 

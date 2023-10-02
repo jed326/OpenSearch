@@ -82,7 +82,6 @@ import org.opensearch.search.sort.SortAndFormats;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -173,7 +172,7 @@ public abstract class TopDocsCollectorContext extends QueryCollectorContext {
         CollectorManager<?, ReduceableSearchResult> createManager(CollectorManager<?, ReduceableSearchResult> in) throws IOException {
             assert in == null;
 
-            CollectorManager<?, ReduceableSearchResult> manager = null;
+            CollectorManager<?, ReduceableSearchResult> manager;
 
             if (trackTotalHitsUpTo == SearchContext.TRACK_TOTAL_HITS_DISABLED) {
                 manager = new EarlyTerminatingCollectorManager<>(
@@ -184,10 +183,10 @@ public abstract class TopDocsCollectorContext extends QueryCollectorContext {
             } else {
                 if (hitCount == -1) {
                     if (trackTotalHitsUpTo == SearchContext.TRACK_TOTAL_HITS_ACCURATE) {
-                        manager = new TotalHitCountCollectorManager(sort);
+                        manager = new TotalHitCountCollectorManager(sort, trackTotalHitsUpTo);
                     } else {
                         manager = new EarlyTerminatingCollectorManager<>(
-                            new TotalHitCountCollectorManager(sort),
+                            new TotalHitCountCollectorManager(sort, trackTotalHitsUpTo),
                             trackTotalHitsUpTo,
                             false
                         );
@@ -577,19 +576,7 @@ public abstract class TopDocsCollectorContext extends QueryCollectorContext {
                 }
             }
 
-            // Since we cannot support early forced termination, we have to simulate it by
-            // artificially reducing the number of total hits and doc scores.
             ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-            if (terminatedAfter != null) {
-                if (totalHits.value > terminatedAfter) {
-                    totalHits = new TotalHits(terminatedAfter, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO);
-                }
-
-                if (scoreDocs != null && scoreDocs.length > terminatedAfter) {
-                    scoreDocs = Arrays.copyOf(scoreDocs, terminatedAfter);
-                }
-            }
-
             final TopDocs newTopDocs;
             if (topDocs instanceof TopFieldDocs) {
                 TopFieldDocs fieldDocs = (TopFieldDocs) topDocs;

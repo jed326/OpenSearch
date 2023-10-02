@@ -707,6 +707,7 @@ public class TestSearchContext extends SearchContext {
     public TestSearchContext withCleanQueryResult() {
         queryResult.consumeAll();
         profilers = null;
+        setTerminatedEarly(false);
         return this;
     }
 

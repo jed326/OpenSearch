@@ -108,6 +108,7 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 
 import static org.opensearch.search.SearchService.CLUSTER_CONCURRENT_SEGMENT_SEARCH_SETTING;
+import static org.opensearch.search.SearchService.TERMINATE_AFTER_CONCURRENT_SEARCH_THRESHOLD;
 
 /**
  * The main search context used during search phase
@@ -186,6 +187,7 @@ final class DefaultSearchContext extends SearchContext {
     private final Function<SearchSourceBuilder, InternalAggregation.ReduceContextBuilder> requestToAggReduceContextBuilder;
     private final boolean concurrentSearchSettingsEnabled;
     private final SetOnce<Boolean> requestShouldUseConcurrentSearch = new SetOnce<>();
+    private final int terminateAfterThreshold;
 
     DefaultSearchContext(
         ReaderContext readerContext,
@@ -217,6 +219,7 @@ final class DefaultSearchContext extends SearchContext {
         this.clusterService = clusterService;
         this.engineSearcher = readerContext.acquireSearcher("search");
         this.concurrentSearchSettingsEnabled = evaluateConcurrentSegmentSearchSettings(executor);
+        this.terminateAfterThreshold = getTerminateAfterThreshold();
         this.searcher = new ContextIndexSearcher(
             engineSearcher.getIndexReader(),
             engineSearcher.getSimilarity(),
@@ -896,9 +899,22 @@ final class DefaultSearchContext extends SearchContext {
             && aggregations().factories() != null
             && !aggregations().factories().allFactoriesSupportConcurrentSearch()) {
                 requestShouldUseConcurrentSearch.set(false);
+            } else if (terminateAfter != 0 && terminateAfter < terminateAfterThreshold) {
+                requestShouldUseConcurrentSearch.set(false);
             } else {
                 requestShouldUseConcurrentSearch.set(true);
             }
+    }
+
+    /**
+     * Get the terminate_after threshold below which we should revert to non-concurrent search
+     */
+    private int getTerminateAfterThreshold() {
+        if (FeatureFlags.isEnabled(FeatureFlags.CONCURRENT_SEGMENT_SEARCH) && (clusterService != null)) {
+            return clusterService.getClusterSettings().get(TERMINATE_AFTER_CONCURRENT_SEARCH_THRESHOLD);
+        } else {
+            return Integer.MAX_VALUE;
+        }
     }
 
     public void setProfilers(Profilers profilers) {

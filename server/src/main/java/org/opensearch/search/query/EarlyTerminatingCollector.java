@@ -40,6 +40,7 @@ import org.apache.lucene.search.FilterLeafCollector;
 import org.apache.lucene.search.LeafCollector;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A {@link Collector} that early terminates collection after <code>maxCountHits</code> docs have been collected.
@@ -47,15 +48,19 @@ import java.io.IOException;
  * @opensearch.internal
  */
 public class EarlyTerminatingCollector extends FilterCollector {
-    static final class EarlyTerminationException extends RuntimeException {
+
+    /**
+     * Force termination exception
+     */
+    public static final class EarlyTerminationException extends RuntimeException {
         EarlyTerminationException(String msg) {
             super(msg);
         }
     }
 
     private final int maxCountHits;
-    private int numCollected;
-    private boolean forceTermination;
+    private final AtomicLong numCollected;
+    private final boolean forceTermination;
     private boolean earlyTerminated;
 
     /**
@@ -69,11 +74,19 @@ public class EarlyTerminatingCollector extends FilterCollector {
         super(delegate);
         this.maxCountHits = maxCountHits;
         this.forceTermination = forceTermination;
+        this.numCollected = new AtomicLong();
+    }
+
+    EarlyTerminatingCollector(final Collector delegate, int maxCountHits, boolean forceTermination, AtomicLong numCollected) {
+        super(delegate);
+        this.maxCountHits = maxCountHits;
+        this.forceTermination = forceTermination;
+        this.numCollected = numCollected;
     }
 
     @Override
     public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
-        if (numCollected >= maxCountHits) {
+        if (numCollected.get() >= maxCountHits) {
             earlyTerminated = true;
             if (forceTermination) {
                 throw new EarlyTerminationException("early termination [CountBased]");
@@ -84,7 +97,7 @@ public class EarlyTerminatingCollector extends FilterCollector {
         return new FilterLeafCollector(super.getLeafCollector(context)) {
             @Override
             public void collect(int doc) throws IOException {
-                if (++numCollected > maxCountHits) {
+                if (numCollected.incrementAndGet() > maxCountHits) {
                     earlyTerminated = true;
                     if (forceTermination) {
                         throw new EarlyTerminationException("early termination [CountBased]");
