@@ -80,6 +80,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import static org.opensearch.search.query.QueryCollectorContext.createEarlyTerminationCollectorContext;
+import static org.opensearch.search.query.QueryCollectorContext.createFakeContext;
 import static org.opensearch.search.query.QueryCollectorContext.createFilteredCollectorContext;
 import static org.opensearch.search.query.QueryCollectorContext.createMinScoreCollectorContext;
 import static org.opensearch.search.query.QueryCollectorContext.createMultiCollectorContext;
@@ -100,6 +101,7 @@ public class QueryPhase {
     private final QueryPhaseSearcher queryPhaseSearcher;
     private final SuggestProcessor suggestProcessor;
     private final RescoreProcessor rescoreProcessor;
+//    private final QueryContextProvider contextProvider;
 
     public QueryPhase() {
         this(DEFAULT_QUERY_PHASE_SEARCHER);
@@ -109,6 +111,7 @@ public class QueryPhase {
         this.queryPhaseSearcher = Objects.requireNonNull(queryPhaseSearcher, "QueryPhaseSearcher is required");
         this.suggestProcessor = new SuggestProcessor();
         this.rescoreProcessor = new RescoreProcessor();
+//        this.contextProvider = new QueryContextProvider();
     }
 
     public void preProcess(SearchContext context) {
@@ -192,6 +195,7 @@ public class QueryPhase {
         final ContextIndexSearcher searcher = searchContext.searcher();
         final IndexReader reader = searcher.getIndexReader();
         QuerySearchResult queryResult = searchContext.queryResult();
+        QueryContextProvider contextProvider = new QueryContextProvider();
         queryResult.searchTimedOut(false);
         try {
             queryResult.from(searchContext.from());
@@ -248,7 +252,10 @@ public class QueryPhase {
                 .map(Map.Entry::getValue)
                 .collect(Collectors.toList());
             if (managersExceptGlobalAgg.isEmpty() == false) {
-                collectors.add(createMultiCollectorContext(managersExceptGlobalAgg));
+                contextProvider.addQueryContext(createFakeContext(), 100);
+                contextProvider.addQueryContext(createMultiCollectorContext(managersExceptGlobalAgg), 50);
+                collectors.add(contextProvider.getComposedContext());
+//                collectors.add(createMultiCollectorContext(managersExceptGlobalAgg));
             }
 
             if (searchContext.minimumScore() != null) {

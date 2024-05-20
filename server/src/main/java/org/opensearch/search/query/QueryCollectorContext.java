@@ -308,4 +308,30 @@ public abstract class QueryCollectorContext {
             }
         };
     }
+
+    static QueryCollectorContext createFakeContext() {
+        return new QueryCollectorContext("fake_plugin") {
+            @Override
+            Collector create(Collector in) {
+                return EMPTY_COLLECTOR;
+            }
+
+            @Override
+            CollectorManager<? extends Collector, ReduceableSearchResult> createManager(
+                CollectorManager<? extends Collector, ReduceableSearchResult> in
+            ) throws IOException {
+                return new CollectorManager<Collector, ReduceableSearchResult>() {
+                    @Override
+                    public Collector newCollector() throws IOException {
+                        return EMPTY_COLLECTOR;
+                    }
+
+                    @Override
+                    public ReduceableSearchResult reduce(Collection<Collector> collectors) throws IOException {
+                        return result -> {};
+                    }
+                };
+            }
+        };
+    }
 }
