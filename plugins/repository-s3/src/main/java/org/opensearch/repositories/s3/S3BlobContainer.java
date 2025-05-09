@@ -540,8 +540,11 @@ class S3BlobContainer extends AbstractBlobContainer implements AsyncMultiStreamB
             putObjectRequestBuilder = putObjectRequestBuilder.metadata(metadata);
         }
         if (blobStore.serverSideEncryption()) {
-            putObjectRequestBuilder.serverSideEncryption(ServerSideEncryption.AES256);
+            putObjectRequestBuilder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+            putObjectRequestBuilder.ssekmsKeyId("arn:aws:kms:us-east-1:209972747865:key/b74e2711-1b42-4f5f-9831-aa8519f58dc8");
+            putObjectRequestBuilder.bucketKeyEnabled(true);
         }
+
 
         PutObjectRequest putObjectRequest = putObjectRequestBuilder.build();
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
@@ -598,7 +601,9 @@ class S3BlobContainer extends AbstractBlobContainer implements AsyncMultiStreamB
         }
 
         if (blobStore.serverSideEncryption()) {
-            createMultipartUploadRequestBuilder.serverSideEncryption(ServerSideEncryption.AES256);
+            createMultipartUploadRequestBuilder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+            createMultipartUploadRequestBuilder.ssekmsKeyId("arn:aws:kms:us-east-1:209972747865:key/b74e2711-1b42-4f5f-9831-aa8519f58dc8");
+            createMultipartUploadRequestBuilder.bucketKeyEnabled(true);
         }
 
         final InputStream requestInputStream;
